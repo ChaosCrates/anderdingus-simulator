@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Survive Evil Anderdingus</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div id="ui">
+  <h1>SURVIVE EVIL ANDERDINGUS</h1>
+  <p id="status">Find the exit... don't get caught.</p>
+  <div id="mobileControls">
+    <button ontouchstart="move('forward')">⬆</button>
+    <button ontouchstart="move('left')">⬅</button>
+    <button ontouchstart="move('back')">⬇</button>
+    <button ontouchstart="move('right')">➡</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="game.js"></script>
+
+</body>
+</html>
