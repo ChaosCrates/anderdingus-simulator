@@ -1,0 +1,43 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+  font-family: Arial, sans-serif;
+}
+
+#ui {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: white;
+  z-index: 10;
+}
+
+h1 {
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+#status {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+#mobileControls {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: grid;
+  grid-template-columns: 50px 50px;
+  gap: 10px;
+}
+
+button {
+  width: 50px;
+  height: 50px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid white;
+  color: white;
+  font-size: 18px;
+  border-radius: 8px;
+}
