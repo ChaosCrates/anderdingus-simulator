@@ -1,13 +1,18 @@
-let scene, camera, renderer;
-let player, enemy;
-let speed = 0.15;
+let scene, camera, renderer, controls;
+let objects = [];
+let items = [];
+let enemy;
+let velocity = new THREE.Vector3();
+let direction = new THREE.Vector3();
+let canMove = false;
+let keys = {};
 
 init();
 animate();
 
 function init() {
   scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x000000, 5, 25);
+  scene.fog = new THREE.Fog(0x000000, 1, 40);
 
   camera = new THREE.PerspectiveCamera(
     75,
@@ -20,94 +25,153 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
+  // LIGHTING (this is what makes it NOT trash anymore)
+  const light = new THREE.PointLight(0xaaaaaa, 1);
+  light.position.set(0, 10, 0);
+  scene.add(light);
+
+  scene.add(new THREE.AmbientLight(0x222222));
+
+  // CONTROLS (first person)
+  controls = new THREE.PointerLockControls(camera, document.body);
+  scene.add(controls.getObject());
+
+  document.body.addEventListener("click", () => controls.lock());
+
+  controls.addEventListener("lock", () => canMove = true);
+  controls.addEventListener("unlock", () => canMove = false);
+
   // FLOOR
-  const floorGeo = new THREE.BoxGeometry(50, 1, 50);
-  const floorMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.position.y = -1;
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0x111111 })
+  );
+  floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
-  // PLAYER
-  const playerGeo = new THREE.BoxGeometry(1, 1, 1);
-  const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-  player = new THREE.Mesh(playerGeo, playerMat);
-  scene.add(player);
+  // SIMPLE MAZE WALLS
+  createWall(0, 1, -5, 10);
+  createWall(5, 1, 0, 10);
+  createWall(-5, 1, 5, 10);
 
-  // ENEMY (ANDERDINGUS)
-  const enemyGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-  const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
-  enemy = new THREE.Mesh(enemyGeo, enemyMat);
-  enemy.position.set(5, 0, 5);
+  // ITEMS
+  createItem(2, 1, 2, "key");
+  createItem(-3, 1, -2, "battery");
+
+  // EXIT DOOR
+  const exit = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 3, 1),
+    new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+  );
+  exit.position.set(0, 1.5, -15);
+  exit.name = "exit";
+  scene.add(exit);
+
+  objects.push(exit);
+
+  // ANDERDINGUS (enemy)
+  enemy = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 1.5, 1.5),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+  );
+  enemy.position.set(5, 1, 5);
   scene.add(enemy);
 
-  camera.position.z = 5;
-  camera.position.y = 2;
+  // INPUT
+  document.addEventListener("keydown", (e) => {
+    keys[e.key.toLowerCase()] = true;
 
-  window.addEventListener("resize", onWindowResize);
+    if (e.key.toLowerCase() === "e") interact();
+  });
 
-  document.addEventListener("keydown", keyMove);
+  document.addEventListener("keyup", (e) => {
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  window.addEventListener("resize", onResize);
 }
 
-function onWindowResize() {
+function createWall(x, y, z, size) {
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(size, 3, 1),
+    new THREE.MeshStandardMaterial({ color: 0x333333 })
+  );
+  wall.position.set(x, y, z);
+  scene.add(wall);
+  objects.push(wall);
+}
+
+function createItem(x, y, z, type) {
+  const item = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshStandardMaterial({ color: type === "key" ? 0xffff00 : 0x00ffff })
+  );
+  item.position.set(x, y, z);
+  item.userData.type = type;
+  scene.add(item);
+  items.push(item);
+}
+
+let inventory = [];
+
+function interact() {
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+  const hits = ray.intersectObjects(items);
+
+  if (hits.length > 0) {
+    const obj = hits[0].object;
+    inventory.push(obj.userData.type);
+
+    document.getElementById("msg").innerText =
+      "Picked up: " + obj.userData.type;
+
+    scene.remove(obj);
+    items = items.filter(i => i !== obj);
+  }
+
+  const exitHit = ray.intersectObjects(objects);
+  if (exitHit.length > 0 && exitHit[0].object.name === "exit") {
+    if (inventory.includes("key")) {
+      document.getElementById("msg").innerText =
+        "YOU ESCAPED ANDERDINGUS 💀";
+    } else {
+      document.getElementById("msg").innerText =
+        "Need a KEY first.";
+    }
+  }
+}
+
+function enemyAI() {
+  const dir = new THREE.Vector3();
+  dir.subVectors(controls.getObject().position, enemy.position);
+  dir.normalize();
+  enemy.position.addScaledVector(dir, 0.03);
+}
+
+function movePlayer() {
+  if (!canMove) return;
+
+  direction.z = Number(keys["w"]) - Number(keys["s"]);
+  direction.x = Number(keys["d"]) - Number(keys["a"]);
+  direction.normalize();
+
+  controls.moveRight(direction.x * 0.1);
+  controls.moveForward(direction.z * 0.1);
+}
+
+function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// PC CONTROLS
-function keyMove(e) {
-  if (e.key === "w") player.position.z -= speed;
-  if (e.key === "s") player.position.z += speed;
-  if (e.key === "a") player.position.x -= speed;
-  if (e.key === "d") player.position.x += speed;
-}
-
-// MOBILE CONTROLS
-window.move = function(dir) {
-  if (dir === "forward") player.position.z -= speed;
-  if (dir === "back") player.position.z += speed;
-  if (dir === "left") player.position.x -= speed;
-  if (dir === "right") player.position.x += speed;
-};
-
-// SIMPLE ENEMY AI
-function enemyAI() {
-  const dx = player.position.x - enemy.position.x;
-  const dz = player.position.z - enemy.position.z;
-
-  enemy.position.x += dx * 0.01;
-  enemy.position.z += dz * 0.01;
-}
-
-// BASIC SOUND (heartbeat vibe)
-function playSound() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
-  osc.frequency.value = 60;
-  osc.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.1);
-}
-
-setInterval(playSound, 3000);
-
-// GAME LOOP
 function animate() {
   requestAnimationFrame(animate);
 
+  movePlayer();
   enemyAI();
-
-  // camera follow
-  camera.position.x = player.position.x;
-  camera.position.z = player.position.z + 5;
-  camera.lookAt(player.position);
-
-  // lose condition
-  const dist = player.position.distanceTo(enemy.position);
-  if (dist < 1) {
-    document.getElementById("status").innerText =
-      "YOU GOT CAUGHT BY ANDERDINGUS 💀 REFRESH TO RESTART";
-  }
 
   renderer.render(scene, camera);
 }
