@@ -9,17 +9,13 @@
 <body>
 
 <div id="ui">
-  <h1>SURVIVE EVIL ANDERDINGUS</h1>
-  <p id="status">Find the exit... don't get caught.</p>
-  <div id="mobileControls">
-    <button ontouchstart="move('forward')">⬆</button>
-    <button ontouchstart="move('left')">⬅</button>
-    <button ontouchstart="move('back')">⬇</button>
-    <button ontouchstart="move('right')">➡</button>
-  </div>
+  <div id="title">SURVIVE EVIL ANDERDINGUS</div>
+  <div id="hint">WASD move • Mouse look • E pick up • ESC unlock mouse</div>
+  <div id="msg"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
 <script src="game.js"></script>
 
 </body>
